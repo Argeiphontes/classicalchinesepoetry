@@ -20,6 +20,9 @@
       --parchment: #F5F3ED;
       --ink: #2C2C2C;
       --border-light: #D4CEC1;
+      --status-to-memorize: #8B4513;
+      --status-needs-review: #CD853F;
+      --status-memorized: #2E8B57;
     }
 
     body {
@@ -113,9 +116,6 @@
       font-size: 1.1rem;
       font-weight: 500;
       margin-bottom: 0.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
     }
 
     .poem-item-english {
@@ -128,16 +128,6 @@
       font-size: 0.85rem;
       color: #888;
       margin-top: 0.25rem;
-    }
-
-    .check-icon {
-      color: var(--bronze-gold);
-      font-weight: bold;
-      font-size: 1rem;
-    }
-
-    .poem-list-item.active .check-icon {
-      color: #FFD700;
     }
 
     .main-content {
@@ -196,7 +186,8 @@
       perspective: 1000px;
       width: 100%;
       max-width: 600px;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
+      z-index: 1;
     }
 
     .card {
@@ -287,12 +278,65 @@
       border-top: 1px solid var(--border-light);
     }
 
-    .controls {
+    .status-selector {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-light);
+      text-align: center;
+    }
+
+    .status-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+    }
+
+    .status-buttons {
       display: flex;
+      gap: 0.5rem;
       justify-content: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
       flex-wrap: wrap;
+    }
+
+    .status-btn {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border: 2px solid;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .status-btn.to-memorize {
+      border-color: var(--status-to-memorize);
+      color: var(--status-to-memorize);
+    }
+
+    .status-btn.to-memorize.active {
+      background: var(--status-to-memorize);
+      color: white;
+    }
+
+    .status-btn.needs-review {
+      border-color: var(--status-needs-review);
+      color: var(--status-needs-review);
+    }
+
+    .status-btn.needs-review.active {
+      background: var(--status-needs-review);
+      color: white;
+    }
+
+    .status-btn.memorized {
+      border-color: var(--status-memorized);
+      color: var(--status-memorized);
+    }
+
+    .status-btn.memorized.active {
+      background: var(--status-memorized);
+      color: white;
     }
 
     button {
@@ -329,7 +373,16 @@
       font-size: 0.9rem;
       color: #888;
       font-style: italic;
-      margin-bottom: 1rem;
+      margin-top: 1rem;
+      margin-bottom: 2rem;
+      position: relative;
+      clear: both;
+      transition: opacity 0.3s ease;
+    }
+
+    .flip-hint.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .progress {
@@ -337,17 +390,30 @@
       font-size: 1rem;
       color: var(--wine-dark);
       margin-bottom: 1rem;
+      z-index: 10;
+      position: relative;
     }
 
-    .memorized-badge {
+    .status-badge {
       display: inline-block;
-      background: var(--bronze-gold);
       color: white;
       padding: 0.25rem 0.75rem;
       border-radius: 4px;
       font-size: 0.8rem;
       font-weight: 600;
       margin-left: 0.5rem;
+    }
+
+    .status-badge.to-memorize {
+      background: var(--status-to-memorize);
+    }
+
+    .status-badge.needs-review {
+      background: var(--status-needs-review);
+    }
+
+    .status-badge.memorized {
+      background: var(--status-memorized);
     }
 
     @media (min-width: 769px) {
@@ -410,7 +476,7 @@
     <div class="sidebar-header">
       <div class="wen-mark">文</div>
       <h2>Classical Chinese Poetry</h2>
-      <div class="sidebar-subtitle">Twelve Poems</div>
+      <div class="sidebar-subtitle">Eighteen Poems</div>
     </div>
     <ul class="poem-list" id="poemList"></ul>
   </div>
@@ -418,7 +484,7 @@
   <div class="main-content">
     <div class="header">
       <h1>Classical Chinese Poetry</h1>
-      <div class="subtitle">Twelve Poems for Memorization</div>
+      <div class="subtitle">Eighteen Poems for Memorization</div>
     </div>
 
     <div class="progress" id="progress"></div>
@@ -430,42 +496,83 @@
       </div>
     </div>
 
-    <div class="flip-hint">Tap card to flip</div>
-
-    <div class="controls">
-      <button id="prevBtn" onclick="previousCard()">← Previous</button>
-      <button id="nextBtn" onclick="nextCard()">Next →</button>
-    </div>
+    <div class="flip-hint" id="flipHint">Tap card to flip</div>
   </div>
 
   <script>
     const poems = [
-      {"id":1,"title":"鹿柴","titleEnglish":"Deer Enclosure","author":"王維","authorEnglish":"Wang Wei","date":"c. 750s–760s","chinese":"空山不見人\n但聞人語響\n返景入深林\n復照青苔上","pinyin":"kōng shān bù jiàn rén\ndàn wén rén yǔ xiǎng\nfǎn jǐng rù shēn lín\nfù zhào qīng tái shàng","translation":"Empty mountains — no one in sight\nOnly voices, echoes of speech\nReturning light enters the deep forest\nShines again on green moss","memorized":true},
-      {"id":2,"title":"黃鶴樓送孟浩然之廣陵","titleEnglish":"Yellow Crane Tower: Farewell to Meng Haoran","author":"李白","authorEnglish":"Li Bai","date":"c. 730","chinese":"故人西辭黃鶴樓\n煙花三月下揚州\n孤帆遠影碧空盡\n唯見長江天際流","pinyin":"gù rén xī cí huáng hè lóu\nyān huā sān yuè xià yáng zhōu\ngū fān yuǎn yǐng bì kōng jìn\nwéi jiàn cháng jiāng tiān jì liú","translation":"My old friend takes leave at Yellow Crane Tower, westward bound\nIn the mist and flowers of third-month spring, descends toward Yangzhou\nA lone sail, distant shadow, fades into azure-green emptiness\nI see only the Yangzi, flowing on to the sky's edge","memorized":true},
-      {"id":3,"title":"靜夜思","titleEnglish":"Quiet Night Thought","author":"李白","authorEnglish":"Li Bai","date":"c. 726","chinese":"床前明月光\n疑是地上霜\n舉頭望明月\n低頭思故鄉","pinyin":"chuáng qián míng yuè guāng\nyí shì dì shàng shuāng\njǔ tóu wàng míng yuè\ndī tóu sī gù xiāng","translation":"Bright moonlight before my bed\nI suspect it's frost on the ground\nLifting my head, I gaze at the bright moon\nLowering my head, I think of my old home","memorized":true},
-      {"id":4,"title":"春曉","titleEnglish":"Spring Dawn","author":"孟浩然","authorEnglish":"Meng Haoran","date":"c. 715–720","chinese":"春眠不覺曉\n處處聞啼鳥\n夜來風雨聲\n花落知多少","pinyin":"chūn mián bù jué xiǎo\nchù chù wén tí niǎo\nyè lái fēng yǔ shēng\nhuā luò zhī duō shǎo","translation":"In spring sleep, I don't notice dawn\nEverywhere I hear birds crying\nLast night came sounds of wind and rain\nHow many fallen flowers, who can know?","memorized":true},
-      {"id":5,"title":"春望","titleEnglish":"Spring View","author":"杜甫","authorEnglish":"Du Fu","date":"757","chinese":"國破山河在\n城春草木深\n感時花濺淚\n恨別鳥驚心\n烽火連三月\n家書抵萬金\n白頭搔更短\n渾欲不勝簪","pinyin":"guó pò shān hé zài\nchéng chūn cǎo mù shēn\ngǎn shí huā jiàn lèi\nhèn bié niǎo jīng xīn\nfēng huǒ lián sān yuè\njiā shū dǐ wàn jīn\nbái tóu sāo gèng duǎn\nhún yù bù shèng zān","translation":"The nation broken, mountains and rivers remain\nIn the ruined city, spring — grasses and trees grow deep\nMoved by the times, flowers splash tears\nResenting separation, birds startle the heart\nBeacon fires have lasted three months\nA letter from home worth ten thousand gold\nWhite-headed, I scratch — my hair grows even shorter\nSoon it will not hold a hairpin","memorized":false},
-      {"id":6,"title":"玉華宮","titleEnglish":"Jade Flower Palace","author":"杜甫","authorEnglish":"Du Fu","date":"761","chinese":"谿回松風長\n蒼鼠奔古瓦\n不知何王殿\n遺構絕壁下\n陰房鬼火青\n壞道哀湍瀉\n萬籟真笙竽\n秋色正瀟灑","pinyin":"xī huí sōng fēng cháng\ncāng shǔ bēn gǔ wǎ\nbù zhī hé wáng diàn\nyí gòu jué bì xià\nyīn fáng guǐ huǒ qīng\nhuài dào āi tuān xiè\nwàn lài zhēn shēng yú\nqiū sè zhèng xiāo sǎ","translation":"The valley winds back, pine wind long and ceaseless\nGray rats scurry over ancient roof tiles\nI don't know which king's palace this was—\nAbandoned ruins beneath a sheer cliff\nIn dark chambers, ghost-fires flicker blue-green\nOn broken paths, mournful torrents pour\nTen thousand sounds become true reed organs\nAutumn's colors spread with desolate grace","memorized":false},
-      {"id":7,"title":"關雎","titleEnglish":"Fishhawks","author":"詩經","authorEnglish":"Shijing (Book of Songs)","date":"c. 1000–600 BCE","chinese":"關關雎鳩\n在河之洲\n窈窕淑女\n君子好逑\n參差荇菜\n左右流之\n窈窕淑女\n寤寐求之\n求之不得\n寤寐思服\n悠哉悠哉\n輾轉反側\n參差荇菜\n左右采之\n窈窕淑女\n琴瑟友之\n參差荇菜\n左右芼之\n窈窕淑女\n鐘鼓樂之","pinyin":"guān guān jū jiū\nzài hé zhī zhōu\nyǎo tiǎo shū nǚ\njūn zǐ hǎo qiú\ncēn cī xìng cài\nzuǒ yòu liú zhī\nyǎo tiǎo shū nǚ\nwù mèi qiú zhī\nqiú zhī bù dé\nwù mèi sī fú\nyōu zāi yōu zāi\nniǎn zhuǎn fǎn cè\ncēn cī xìng cài\nzuǒ yòu cǎi zhī\nyǎo tiǎo shū nǚ\nqín sè yǒu zhī\ncēn cī xìng cài\nzuǒ yòu mào zhī\nyǎo tiǎo shū nǚ\nzhōng gǔ lè zhī","translation":"Guan-guan cry the fishhawks\nOn the river's islet\nA modest, virtuous maiden\nA fine match for the gentleman\nRagged, the water plants\nLeft and right we gather them\nA modest, virtuous maiden\nWaking and sleeping, he seeks her\nSeeking but not finding\nWaking and sleeping, he thinks of her\nEndless longing, endless longing\nTossing and turning on his bed\nRagged, the water plants\nLeft and right we pluck them\nA modest, virtuous maiden\nWith zither and lute, befriend her\nRagged, the water plants\nLeft and right we cull them\nA modest, virtuous maiden\nWith bells and drums, delight her","memorized":false},
-      {"id":8,"title":"飲酒·其五","titleEnglish":"Drinking Wine, No. 5","author":"陶潛","authorEnglish":"Tao Qian","date":"c. 417","chinese":"結廬在人境\n而無車馬喧\n問君何能爾\n心遠地自偏\n採菊東籬下\n悠然見南山\n山氣日夕佳\n飛鳥相與還\n此中有真意\n欲辨已忘言","pinyin":"jié lú zài rén jìng\nér wú chē mǎ xuān\nwèn jūn hé néng ěr\nxīn yuǎn dì zì piān\ncǎi jú dōng lí xià\nyōu rán jiàn nán shān\nshān qì rì xī jiā\nfēi niǎo xiāng yǔ huán\ncǐ zhōng yǒu zhēn yì\nyù biàn yǐ wàng yán","translation":"I built my hut within the human realm\nYet hear no noise of horse and carriage\nYou ask: how can this be?\nWhen the heart is distant, the place becomes remote\nPicking chrysanthemums beneath the eastern hedge\nAt ease, I see the southern mountains\nThe mountain air is lovely at dusk\nFlying birds return together, in pairs\nIn this there is true meaning\nI want to explain, but have forgotten words","memorized":false},
-      {"id":9,"title":"峨眉山月歌","titleEnglish":"Song of Mount Emei's Moon","author":"李白","authorEnglish":"Li Bai","date":"726","chinese":"峨眉山月半輪秋\n影入平羌江水流\n夜發清溪向三峽\n思君不見下渝州","pinyin":"é méi shān yuè bàn lún qiū\nyǐng rù píng qiāng jiāng shuǐ liú\nyè fā qīng xī xiàng sān xiá\nsī jūn bù jiàn xià yú zhōu","translation":"Mount Emei's moon, a half-wheel in autumn\nIts reflection enters the Pingqiang River, flowing\nBy night I set out from Qingxi toward the Three Gorges\nThinking of you but not seeing you, I descend toward Yuzhou","memorized":false},
-      {"id":10,"title":"寒山詩之二十四","titleEnglish":"Cold Mountain Poem No. 24","author":"寒山","authorEnglish":"Hanshan","date":"c. 700–800","chinese":"欲得安身處\n寒山可長保\n微風吹幽松\n近聽聲愈好\n下有斑白人\n喃喃讀黃老\n十年歸不得\n忘卻來時道","pinyin":"yù dé ān shēn chù\nhán shān kě cháng bǎo\nwēi fēng chuī yōu sōng\njìn tīng shēng yù hǎo\nxià yǒu bān bái rén\nnán nán dú huáng lǎo\nshí nián guī bù dé\nwàng què lái shí dào","translation":"If you want a place to rest your body\nCold Mountain can be kept forever\nA light breeze blows through hidden pines\nDraw near to listen — the sound grows better\nBelow sits a grizzled man\nMurmuring, reading the Yellow Emperor and Laozi\nTen years and still unable to return\nHe's forgotten the path by which he came","memorized":false},
-      {"id":11,"title":"問劉十九","titleEnglish":"Asking Liu the Nineteenth","author":"白居易","authorEnglish":"Bai Juyi","date":"c. 815–820","chinese":"綠蟻新醅酒\n紅泥小火爐\n晚來天欲雪\n能飲一杯無","pinyin":"lǜ yǐ xīn pēi jiǔ\nhóng ní xiǎo huǒ lú\nwǎn lái tiān yù xuě\nnéng yǐn yī bēi wú","translation":"Green-ant wine, freshly fermented\nA small red clay brazier\nToward evening, the sky threatens snow\nCan you drink a cup or not?","memorized":false},
-      {"id":12,"title":"尋隱者不遇","titleEnglish":"Seeking a Recluse, Not Finding Him","author":"賈島","authorEnglish":"Jia Dao","date":"c. 800","chinese":"松下問童子\n言師採藥去\n只在此山中\n雲深不知處","pinyin":"sōng xià wèn tóng zǐ\nyán shī cǎi yào qù\nzhǐ zài cǐ shān zhōng\nyún shēn bù zhī chù","translation":"Under the pines I ask the boy\nHe says: my master has gone to gather herbs\nHe's somewhere in these mountains\nBut the clouds are deep — I don't know where","memorized":false}
+      {"id":1,"title":"關雎","titleEnglish":"Fishhawks","author":"詩經","authorEnglish":"Shijing (Book of Songs)","date":"c. 1000–600 BCE","chinese":"關關雎鳩\n在河之洲\n窈窕淑女\n君子好逑\n參差荇菜\n左右流之\n窈窕淑女\n寤寐求之\n求之不得\n寤寐思服\n悠哉悠哉\n輾轉反側\n參差荇菜\n左右采之\n窈窕淑女\n琴瑟友之\n參差荇菜\n左右芼之\n窈窕淑女\n鐘鼓樂之","pinyin":"guān guān jū jiū\nzài hé zhī zhōu\nyǎo tiǎo shū nǚ\njūn zǐ hǎo qiú\ncēn cī xìng cài\nzuǒ yòu liú zhī\nyǎo tiǎo shū nǚ\nwù mèi qiú zhī\nqiú zhī bù dé\nwù mèi sī fú\nyōu zāi yōu zāi\nniǎn zhuǎn fǎn cè\ncēn cī xìng cài\nzuǒ yòu cǎi zhī\nyǎo tiǎo shū nǚ\nqín sè yǒu zhī\ncēn cī xìng cài\nzuǒ yòu mào zhī\nyǎo tiǎo shū nǚ\nzhōng gǔ lè zhī","translation":"Guan-guan cry the fishhawks\nOn the river's islet\nA modest, virtuous maiden\nA fine match for the gentleman\nRagged, the water plants\nLeft and right we gather them\nA modest, virtuous maiden\nWaking and sleeping, he seeks her\nSeeking but not finding\nWaking and sleeping, he thinks of her\nEndless longing, endless longing\nTossing and turning on his bed\nRagged, the water plants\nLeft and right we pluck them\nA modest, virtuous maiden\nWith zither and lute, befriend her\nRagged, the water plants\nLeft and right we cull them\nA modest, virtuous maiden\nWith bells and drums, delight her"},
+      {"id":2,"title":"君子于役","titleEnglish":"The Gentleman Is Away on Service","author":"詩經","authorEnglish":"Shijing (Book of Songs)","date":"c. 1000–600 BCE","chinese":"君子于役\n不知其期\n曷至哉\n雞棲于埘\n日之夕矣\n羊牛下來\n君子于役\n如之何勿思\n君子于役\n不日不月\n曷其有佸\n雞棲于桀\n日之夕矣\n羊牛下括\n君子于役\n苟無飢渴","pinyin":"jūn zǐ yú yì\nbù zhī qí qī\nhé zhì zāi\njī qī yú shí\nrì zhī xī yǐ\nyáng niú xià lái\njūn zǐ yú yì\nrú zhī hé wù sī\njūn zǐ yú yì\nbù rì bù yuè\nhé qí yǒu kuò\njī qī yú jié\nrì zhī xī yǐ\nyáng niú xià kuò\njūn zǐ yú yì\ngǒu wú jī kě","translation":"The gentleman is away on service\nI do not know when he will return\nWhere has he gone?\nThe chickens roost in their holes\nAs the sun sets in the west\nThe sheep and cattle come down from the hills\nThe gentleman is away on service\nHow can I not think of him?\nThe gentleman is away on service\nNot counting days, not counting months\nWhen will he come home?\nThe chickens roost on their perches\nAs the sun sets in the west\nThe sheep and cattle descend and are penned\nThe gentleman is away on service\nIf only he suffers no hunger or thirst"},
+      {"id":3,"title":"飲酒·其五","titleEnglish":"Drinking Wine, No. 5","author":"陶潛","authorEnglish":"Tao Qian","date":"c. 417","chinese":"結廬在人境\n而無車馬喧\n問君何能爾\n心遠地自偏\n採菊東籬下\n悠然見南山\n山氣日夕佳\n飛鳥相與還\n此中有真意\n欲辨已忘言","pinyin":"jié lú zài rén jìng\nér wú chē mǎ xuān\nwèn jūn hé néng ěr\nxīn yuǎn dì zì piān\ncǎi jú dōng lí xià\nyōu rán jiàn nán shān\nshān qì rì xī jiā\nfēi niǎo xiāng yǔ huán\ncǐ zhōng yǒu zhēn yì\nyù biàn yǐ wàng yán","translation":"I built my hut within the human realm\nYet hear no noise of horse and carriage\nYou ask: how can this be?\nWhen the heart is distant, the place becomes remote\nPicking chrysanthemums beneath the eastern hedge\nAt ease, I see the southern mountains\nThe mountain air is lovely at dusk\nFlying birds return together, in pairs\nIn this there is true meaning\nI want to explain, but have forgotten words"},
+      {"id":4,"title":"歸園田居·其一","titleEnglish":"Returning to Dwell in Gardens and Fields, No. 1","author":"陶潛","authorEnglish":"Tao Qian","date":"c. 405","chinese":"少無適俗韻\n性本愛丘山\n誤落塵網中\n一去十三年\n羈鳥戀舊林\n池魚思故淵\n開荒南野際\n守拙歸園田\n方宅十餘畝\n草屋八九間\n榆柳蔭後檐\n桃李羅堂前\n曖曖遠人村\n依依墟里煙\n狗吠深巷中\n雞鳴桑樹顛\n戶庭無塵雜\n虛室有餘閒\n久在樊籠裡\n復得返自然","pinyin":"shǎo wú shì sú yùn\nxìng běn ài qiū shān\nwù luò chén wǎng zhōng\nyī qù shí sān nián\njī niǎo liàn jiù lín\nchí yú sī gù yuān\nkāi huāng nán yě jì\nshǒu zhuō guī yuán tián\nfāng zhái shí yú mǔ\ncǎo wū bā jiǔ jiān\nyú liǔ yīn hòu yán\ntáo lǐ luó táng qián\nài ài yuǎn rén cūn\nyī yī xū lǐ yān\ngǒu fèi shēn xiàng zhōng\njī míng sāng shù diān\nhù tíng wú chén zá\nxū shì yǒu yú xián\njiǔ zài fán lóng lǐ\nfù dé fǎn zì rán","translation":"In youth I was ill-suited to the common world\nMy nature has always loved hills and mountains\nBy mistake I fell into the dusty net\nAnd was gone for thirteen years\nThe caged bird longs for its old forest\nThe pond fish thinks of its former depths\nI open wild land at the edge of the southern fields\nGuarding my simplicity, I return to garden and field\nMy square dwelling is ten-odd acres\nMy thatched cottage has eight or nine rooms\nElms and willows shade the eaves behind\nPeach and plum trees stand before the hall\nDistant, the neighboring village grows dim\nWisps of smoke drift from the hamlet\nA dog barks deep in the lane\nA rooster crows from the top of the mulberry tree\nMy gate and courtyard are free of worldly dust\nIn the empty room, there is leisure to spare\nFor long I was caged\nNow I have returned to nature"},
+      {"id":5,"title":"鹿柴","titleEnglish":"Deer Enclosure","author":"王維","authorEnglish":"Wang Wei","date":"c. 750s–760s","chinese":"空山不見人\n但聞人語響\n返景入深林\n復照青苔上","pinyin":"kōng shān bù jiàn rén\ndàn wén rén yǔ xiǎng\nfǎn jǐng rù shēn lín\nfù zhào qīng tái shàng","translation":"Empty mountains — no one in sight\nOnly voices, echoes of speech\nReturning light enters the deep forest\nShines again on green moss"},
+      {"id":6,"title":"相思","titleEnglish":"Yearning","author":"王維","authorEnglish":"Wang Wei","date":"c. 740s","chinese":"紅豆生南國\n春來發幾枝\n願君多采擷\n此物最相思","pinyin":"hóng dòu shēng nán guó\nchūn lái fā jǐ zhī\nyuàn jūn duō cǎi xié\ncǐ wù zuì xiāng sī","translation":"Red beans grow in the southern lands\nWhen spring comes, how many branches sprout?\nI hope you will gather many\nThese things are what we yearn for most"},
+      {"id":7,"title":"靜夜思","titleEnglish":"Quiet Night Thought","author":"李白","authorEnglish":"Li Bai","date":"726","chinese":"床前明月光\n疑是地上霜\n舉頭望明月\n低頭思故鄉","pinyin":"chuáng qián míng yuè guāng\nyí shì dì shàng shuāng\njǔ tóu wàng míng yuè\ndī tóu sī gù xiāng","translation":"Bright moonlight before my bed\nI suspect it's frost on the ground\nLifting my head, I gaze at the bright moon\nLowering my head, I think of my old home"},
+      {"id":8,"title":"峨眉山月歌","titleEnglish":"Song of Mount Emei's Moon","author":"李白","authorEnglish":"Li Bai","date":"726","chinese":"峨眉山月半輪秋\n影入平羌江水流\n夜發清溪向三峽\n思君不見下渝州","pinyin":"é méi shān yuè bàn lún qiū\nyǐng rù píng qiāng jiāng shuǐ liú\nyè fā qīng xī xiàng sān xiá\nsī jūn bù jiàn xià yú zhōu","translation":"Mount Emei's moon, a half-wheel in autumn\nIts reflection enters the Pingqiang River, flowing\nBy night I set out from Qingxi toward the Three Gorges\nThinking of you but not seeing you, I descend toward Yuzhou"},
+      {"id":9,"title":"黃鶴樓送孟浩然之廣陵","titleEnglish":"Yellow Crane Tower: Farewell to Meng Haoran","author":"李白","authorEnglish":"Li Bai","date":"c. 730","chinese":"故人西辭黃鶴樓\n煙花三月下揚州\n孤帆遠影碧空盡\n唯見長江天際流","pinyin":"gù rén xī cí huáng hè lóu\nyān huā sān yuè xià yáng zhōu\ngū fān yuǎn yǐng bì kōng jìn\nwéi jiàn cháng jiāng tiān jì liú","translation":"My old friend takes leave at Yellow Crane Tower, westward bound\nIn the mist and flowers of third-month spring, descends toward Yangzhou\nA lone sail, distant shadow, fades into azure-green emptiness\nI see only the Yangzi, flowing on to the sky's edge"},
+      {"id":10,"title":"春曉","titleEnglish":"Spring Dawn","author":"孟浩然","authorEnglish":"Meng Haoran","date":"c. 715–720","chinese":"春眠不覺曉\n處處聞啼鳥\n夜來風雨聲\n花落知多少","pinyin":"chūn mián bù jué xiǎo\nchù chù wén tí niǎo\nyè lái fēng yǔ shēng\nhuā luò zhī duō shǎo","translation":"In spring sleep, I don't notice dawn\nEverywhere I hear birds crying\nLast night came sounds of wind and rain\nHow many fallen flowers, who can know?"},
+      {"id":11,"title":"春望","titleEnglish":"Spring View","author":"杜甫","authorEnglish":"Du Fu","date":"757","chinese":"國破山河在\n城春草木深\n感時花濺淚\n恨別鳥驚心\n烽火連三月\n家書抵萬金\n白頭搔更短\n渾欲不勝簪","pinyin":"guó pò shān hé zài\nchéng chūn cǎo mù shēn\ngǎn shí huā jiàn lèi\nhèn bié niǎo jīng xīn\nfēng huǒ lián sān yuè\njiā shū dǐ wàn jīn\nbái tóu sāo gèng duǎn\nhún yù bù shèng zān","translation":"The nation broken, mountains and rivers remain\nIn the ruined city, spring — grasses and trees grow deep\nMoved by the times, flowers splash tears\nResenting separation, birds startle the heart\nBeacon fires have lasted three months\nA letter from home worth ten thousand gold\nWhite-headed, I scratch — my hair grows even shorter\nSoon it will not hold a hairpin"},
+      {"id":12,"title":"玉華宮","titleEnglish":"Jade Flower Palace","author":"杜甫","authorEnglish":"Du Fu","date":"761","chinese":"谿回松風長\n蒼鼠奔古瓦\n不知何王殿\n遺構絕壁下\n陰房鬼火青\n壞道哀湍瀉\n萬籟真笙竽\n秋色正瀟灑","pinyin":"xī huí sōng fēng cháng\ncāng shǔ bēn gǔ wǎ\nbù zhī hé wáng diàn\nyí gòu jué bì xià\nyīn fáng guǐ huǒ qīng\nhuài dào āi tuān xiè\nwàn lài zhēn shēng yú\nqiū sè zhèng xiāo sǎ","translation":"The valley winds back, pine wind long and ceaseless\nGray rats scurry over ancient roof tiles\nI don't know which king's palace this was—\nAbandoned ruins beneath a sheer cliff\nIn dark chambers, ghost-fires flicker blue-green\nOn broken paths, mournful torrents pour\nTen thousand sounds become true reed organs\nAutumn's colors spread with desolate grace"},
+      {"id":13,"title":"寒山詩","titleEnglish":"Cold Mountain Poem","author":"寒山","authorEnglish":"Hanshan","date":"c. 700–800","chinese":"吾心似秋月\n碧潭清皎潔\n無物堪比倫\n教我如何說","pinyin":"wú xīn sì qiū yuè\nbì tán qīng jiǎo jié\nwú wù kān bǐ lún\njiāo wǒ rú hé shuō","translation":"My heart is like the autumn moon\nShining clean and clear in the green pool\nNothing in existence rivals it\nHow can I explain it?"},
+      {"id":14,"title":"寒山詩","titleEnglish":"Cold Mountain Poem","author":"寒山","authorEnglish":"Hanshan","date":"c. 700–800","chinese":"眾星羅列夜明深\n巖點孤燈月未沈\n圓滿光華不磨瑩\n挂在青天是我心","pinyin":"zhòng xīng luó liè yè míng shēn\nyán diǎn gū dēng yuè wèi chén\nyuán mǎn guāng huá bù mó yíng\nguà zài qīng tiān shì wǒ xīn","translation":"The stars are arrayed, the night shines deep\nA lone lamp flickers on the cliff, the moon has not yet sunk\nPerfect, luminous, needing no polishing\nHanging in the blue sky — that is my heart"},
+      {"id":15,"title":"尋隱者不遇","titleEnglish":"Seeking a Recluse, Not Finding Him","author":"賈島","authorEnglish":"Jia Dao","date":"c. 800","chinese":"松下問童子\n言師採藥去\n只在此山中\n雲深不知處","pinyin":"sōng xià wèn tóng zǐ\nyán shī cǎi yào qù\nzhǐ zài cǐ shān zhōng\nyún shēn bù zhī chù","translation":"Under the pines I ask the boy\nHe says: my master has gone to gather herbs\nHe's somewhere in these mountains\nBut the clouds are deep — I don't know where"},
+      {"id":16,"title":"問劉十九","titleEnglish":"Asking Liu the Nineteenth","author":"白居易","authorEnglish":"Bai Juyi","date":"c. 815–820","chinese":"綠蟻新醅酒\n紅泥小火爐\n晚來天欲雪\n能飲一杯無","pinyin":"lǜ yǐ xīn pēi jiǔ\nhóng ní xiǎo huǒ lú\nwǎn lái tiān yù xuě\nnéng yǐn yī bēi wú","translation":"Green-ant wine, freshly fermented\nA small red clay brazier\nToward evening, the sky threatens snow\nCan you drink a cup or not?"},
+      {"id":17,"title":"如夢令·昨夜雨疏風驟","titleEnglish":"Like a Dream: Last Night, Rain Sparse, Wind Sudden","author":"李清照","authorEnglish":"Li Qingzhao","date":"c. 1100s","chinese":"昨夜雨疏風驟\n濃睡不消殘酒\n試問捲簾人\n卻道海棠依舊\n知否\n知否\n應是綠肥紅瘦","pinyin":"zuó yè yǔ shū fēng zhòu\nnóng shuì bù xiāo cán jiǔ\nshì wèn juǎn lián rén\nquè dào hǎi táng yī jiù\nzhī fǒu\nzhī fǒu\nyìng shì lǜ féi hóng shòu","translation":"Last night the rain was light, the wind sudden\nDeep sleep did not dispel the lingering wine\nI ask the maid who rolls up the blinds\nShe says the crabapple is just as before\nDon't you know?\nDon't you know?\nIt should be green-fat, red-thin"},
+      {"id":18,"title":"題西林壁","titleEnglish":"Inscribed on the Wall of West Forest Temple","author":"蘇軾","authorEnglish":"Su Shi","date":"1084","chinese":"橫看成嶺側成峰\n遠近高低各不同\n不識廬山真面目\n只緣身在此山中","pinyin":"héng kàn chéng lǐng cè chéng fēng\nyuǎn jìn gāo dī gè bù tóng\nbù shí lú shān zhēn miàn mù\nzhǐ yuán shēn zài cǐ shān zhōng","translation":"Viewed sideways, a range; from the front, a peak\nNear and far, high and low, each different\nI cannot see Lushan's true face\nBecause I myself am within these mountains"}
     ];
 
     let currentIndex = 0;
     let isFlipped = false;
+
+    // Load status from localStorage
+    function loadStatuses() {
+      const saved = localStorage.getItem('poemStatuses');
+      if (saved) {
+        const statuses = JSON.parse(saved);
+        poems.forEach((poem, index) => {
+          if (statuses[poem.id]) {
+            poems[index].status = statuses[poem.id];
+          } else {
+            poems[index].status = 'to-memorize';
+          }
+        });
+      } else {
+        poems.forEach((poem, index) => {
+          poems[index].status = 'to-memorize';
+        });
+      }
+    }
+
+    // Save status to localStorage
+    function saveStatuses() {
+      const statuses = {};
+      poems.forEach(poem => {
+        statuses[poem.id] = poem.status;
+      });
+      localStorage.setItem('poemStatuses', JSON.stringify(statuses));
+    }
+
+    function setStatus(status) {
+      poems[currentIndex].status = status;
+      saveStatuses();
+      renderCard();
+    }
+
+    function getStatusBadge(status) {
+      const labels = {
+        'to-memorize': 'To Memorize',
+        'needs-review': 'Needs Review',
+        'memorized': '✓ Memorized'
+      };
+      return `<span class="status-badge ${status}">${labels[status]}</span>`;
+    }
 
     function renderSidebar() {
       const list = document.getElementById('poemList');
       list.innerHTML = poems.map((poem, index) => `
         <li class="poem-list-item ${index === currentIndex ? 'active' : ''}" 
             onclick="jumpToPoem(${index})">
-          <div class="poem-item-title">
-            ${poem.memorized ? '<span class="check-icon">✓</span>' : ''}
-            ${poem.title}
-          </div>
+          <div class="poem-item-title">${poem.title}</div>
           <div class="poem-item-english">${poem.titleEnglish}</div>
           <div class="poem-item-meta">${poem.author} — ${poem.date}</div>
         </li>
@@ -492,38 +599,48 @@
       const front = document.getElementById('cardFront');
       const back = document.getElementById('cardBack');
 
-      const memorizedBadge = poem.memorized 
-        ? '<span class="memorized-badge">✓ Memorized</span>' 
-        : '';
+      const statusBadge = getStatusBadge(poem.status);
 
+      // Front of card
       front.innerHTML = `
         <div class="poem-header">
           <div class="poem-title">${poem.title}</div>
           <div class="poem-title-english">${poem.titleEnglish}</div>
           <div class="poem-meta">
             <span>${poem.author}</span> (${poem.authorEnglish}) — ${poem.date}
-            ${memorizedBadge}
+            ${statusBadge}
           </div>
         </div>
         <div class="poem-text">${poem.chinese}</div>
       `;
 
+      // Back of card
       back.innerHTML = `
         <div class="poem-header">
           <div class="poem-title">${poem.title}</div>
           <div class="poem-title-english">${poem.titleEnglish}</div>
           <div class="poem-meta">
             <span>${poem.author}</span> (${poem.authorEnglish}) — ${poem.date}
-            ${memorizedBadge}
+            ${statusBadge}
           </div>
         </div>
         <div class="poem-text">${poem.chinese}</div>
         <div class="poem-pinyin">${poem.pinyin}</div>
         <div class="poem-translation">${poem.translation}</div>
+        <div class="status-selector">
+          <div class="status-label">Status:</div>
+          <div class="status-buttons">
+            <button class="status-btn to-memorize ${poem.status === 'to-memorize' ? 'active' : ''}" 
+                    onclick="event.stopPropagation(); setStatus('to-memorize')">To Memorize</button>
+            <button class="status-btn needs-review ${poem.status === 'needs-review' ? 'active' : ''}" 
+                    onclick="event.stopPropagation(); setStatus('needs-review')">Needs Review</button>
+            <button class="status-btn memorized ${poem.status === 'memorized' ? 'active' : ''}" 
+                    onclick="event.stopPropagation(); setStatus('memorized')">Memorized</button>
+          </div>
+        </div>
       `;
 
       updateProgress();
-      updateButtons();
       renderSidebar();
     }
 
@@ -532,35 +649,16 @@
       progress.textContent = `Poem ${currentIndex + 1} of ${poems.length}`;
     }
 
-    function updateButtons() {
-      document.getElementById('prevBtn').disabled = currentIndex === 0;
-      document.getElementById('nextBtn').disabled = currentIndex === poems.length - 1;
-    }
-
     function flipCard() {
       const card = document.getElementById('card');
+      
       isFlipped = !isFlipped;
       card.classList.toggle('flipped');
     }
 
-    function nextCard() {
-      if (currentIndex < poems.length - 1) {
-        currentIndex++;
-        resetCard();
-        renderCard();
-      }
-    }
-
-    function previousCard() {
-      if (currentIndex > 0) {
-        currentIndex--;
-        resetCard();
-        renderCard();
-      }
-    }
-
     function resetCard() {
       const card = document.getElementById('card');
+      
       if (isFlipped) {
         card.classList.remove('flipped');
         isFlipped = false;
@@ -568,14 +666,57 @@
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') previousCard();
-      if (e.key === 'ArrowRight') nextCard();
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         flipCard();
       }
     });
 
+    // Swipe gesture support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    const cardElement = document.getElementById('card');
+
+    cardElement.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    cardElement.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const swipeThreshold = 50; // minimum distance for a swipe
+      const horizontalSwipe = Math.abs(touchEndX - touchStartX);
+      const verticalSwipe = Math.abs(touchEndY - touchStartY);
+      
+      // Only register as swipe if horizontal movement is greater than vertical
+      if (horizontalSwipe > verticalSwipe && horizontalSwipe > swipeThreshold) {
+        if (touchEndX < touchStartX) {
+          // Swiped left - go to next poem
+          if (currentIndex < poems.length - 1) {
+            currentIndex++;
+            resetCard();
+            renderCard();
+          }
+        } else {
+          // Swiped right - go to previous poem
+          if (currentIndex > 0) {
+            currentIndex--;
+            resetCard();
+            renderCard();
+          }
+        }
+      }
+    }
+
+    loadStatuses();
     renderCard();
     renderSidebar();
   </script>
